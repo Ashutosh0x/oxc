@@ -7,6 +7,8 @@ import { debugAssertIsNonNull } from "./utils/asserts.ts";
 let loadPlugin: typeof loadPluginWrapper | null = null;
 let setupRuleConfigs: typeof setupRuleConfigsWrapper | null = null;
 let lintFile: typeof lintFileWrapper | null = null;
+// Lazy-loaded JS config loader (experimental feature)
+let loadJsConfigs: typeof loadJsConfigsWrapper | null = null;
 
 /**
  * Load a plugin.
@@ -21,7 +23,7 @@ let lintFile: typeof lintFileWrapper | null = null;
 function loadPluginWrapper(
   path: string,
   pluginName: string | null,
-  pluginNameIsAlias: boolean,
+  pluginNameIsAlias: boolean
 ): Promise<string> {
   if (loadPlugin === null) {
     // Use promises here instead of making `loadPluginWrapper` an async function,
@@ -69,19 +71,53 @@ function lintFileWrapper(
   ruleIds: number[],
   optionsIds: number[],
   settingsJSON: string,
-  globalsJSON: string,
+  globalsJSON: string
 ): string | null {
   // `lintFileWrapper` is never called without `loadPluginWrapper` being called first,
   // so `lintFile` must be defined here
   debugAssertIsNonNull(lintFile);
-  return lintFile(filePath, bufferId, buffer, ruleIds, optionsIds, settingsJSON, globalsJSON);
+  return lintFile(
+    filePath,
+    bufferId,
+    buffer,
+    ruleIds,
+    optionsIds,
+    settingsJSON,
+    globalsJSON
+  );
+}
+
+/**
+ * Load JavaScript/TypeScript config files (experimental feature).
+ *
+ * Lazy-loads the js_config module on first call.
+ * Uses native Node.js TypeScript support to import config files.
+ *
+ * @param paths - Array of absolute paths to oxlint.config.ts files
+ * @returns JSON-stringified result with all configs or error
+ */
+function loadJsConfigsWrapper(paths: string[]): Promise<string> {
+  if (loadJsConfigs === null) {
+    return import("./js_config.ts").then((mod) => {
+      loadJsConfigs = mod.loadJsConfigs;
+      return loadJsConfigs(paths);
+    });
+  }
+  return loadJsConfigs(paths);
 }
 
 // Get command line arguments, skipping first 2 (node binary and script path)
 const args = process.argv.slice(2);
 
-// Call Rust, passing `loadPlugin`, `setupRuleConfigs`, and `lintFile` as callbacks, and CLI arguments
-const success = await lint(args, loadPluginWrapper, setupRuleConfigsWrapper, lintFileWrapper);
+// Call Rust, passing callbacks and CLI arguments
+// Note: loadJsConfigsWrapper is for the experimental JavaScript/TypeScript config feature
+const success = await lint(
+  args,
+  loadPluginWrapper,
+  setupRuleConfigsWrapper,
+  lintFileWrapper,
+  loadJsConfigsWrapper
+);
 
 // Note: It's recommended to set `process.exitCode` instead of calling `process.exit()`.
 // `process.exit()` kills the process immediately and `stdout` may not be flushed before process dies.
