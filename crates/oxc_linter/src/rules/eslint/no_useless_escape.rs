@@ -33,7 +33,7 @@ impl std::ops::Deref for NoUselessEscape {
 }
 
 #[derive(Debug, Default, Clone, JsonSchema, Deserialize)]
-#[serde(rename_all = "camelCase", default)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct NoUselessEscapeConfig {
     /// An array of characters that are allowed to be escaped unnecessarily in regexes.
     /// For example, setting this to `["#"]` allows `\#` in regexes.

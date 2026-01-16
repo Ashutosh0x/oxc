@@ -18,7 +18,7 @@ fn no_namespace_diagnostic(span: Span) -> OxcDiagnostic {
 }
 
 #[derive(Debug, Clone, JsonSchema, Deserialize)]
-#[serde(rename_all = "camelCase", default)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct NoNamespace {
     /// Whether to allow declare with custom TypeScript namespaces.
     ///

@@ -33,7 +33,7 @@ fn no_this_destructure_diagnostic(span: Span) -> OxcDiagnostic {
 pub struct NoThisAlias(Box<NoThisAliasConfig>);
 
 #[derive(Debug, Clone, JsonSchema, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", default)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct NoThisAliasConfig {
     /// Whether to allow destructuring of `this` to local variables.
     allow_destructuring: bool,

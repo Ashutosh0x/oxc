@@ -30,7 +30,7 @@ fn max_props_diagnostic(span: Span, cur: usize, limit: usize) -> OxcDiagnostic {
 }
 
 #[derive(Debug, Clone, JsonSchema, Deserialize)]
-#[serde(rename_all = "camelCase", default)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct MaxProps {
     /// The maximum number of props allowed in a Vue Single File Component (SFC).
     max_props: usize,

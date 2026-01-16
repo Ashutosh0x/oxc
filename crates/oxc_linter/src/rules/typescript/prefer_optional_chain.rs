@@ -8,7 +8,7 @@ use crate::rule::{DefaultRuleConfig, Rule};
 pub struct PreferOptionalChain(Box<PreferOptionalChainConfig>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase", default)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct PreferOptionalChainConfig {
     /// Allow autofixers that will change the return type of the expression.
     /// This option is considered unsafe as it may break the build.

@@ -31,7 +31,7 @@ fn miss_on_blur(span: Span, attr_name: &str) -> OxcDiagnostic {
 pub struct MouseEventsHaveKeyEvents(Box<MouseEventsHaveKeyEventsConfig>);
 
 #[derive(Debug, Clone, JsonSchema, Deserialize)]
-#[serde(rename_all = "camelCase", default)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct MouseEventsHaveKeyEventsConfig {
     /// List of hover-in mouse event handlers that require corresponding keyboard event handlers.
     hover_in_handlers: Vec<CompactStr>,
