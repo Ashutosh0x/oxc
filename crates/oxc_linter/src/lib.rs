@@ -1,4 +1,5 @@
-#![expect(clippy::self_named_module_files)] // for rules.rs
+#![expect(clippy::self_named_module_files)]
+// for rules.rs
 // RuleEnum contains rule configs with interior mutability (e.g. Regex),
 // but Hash/Eq/Ord are based only on the rule id, so it's safe as a map key.
 #![expect(clippy::mutable_key_type)]

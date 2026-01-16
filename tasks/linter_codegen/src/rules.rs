@@ -52,9 +52,7 @@ pub fn get_all_rules(contents: &str) -> Vec<RuleEntry<'_>> {
         }
     }
 
-    // Sort deterministically
-    rule_entries.sort_unstable();
-
+    // Preserve declaration order - do not sort
     rule_entries
 }
 
