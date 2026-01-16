@@ -1,3 +1,10 @@
+#![expect(
+    clippy::default_constructed_unit_structs,
+    clippy::semicolon_if_nothing_returned,
+    clippy::wrong_self_convention,
+    clippy::missing_errors_doc,
+    clippy::match_same_arms
+)]
 pub use crate::rules::eslint::accessor_pairs::AccessorPairs as EslintAccessorPairs;
 pub use crate::rules::eslint::array_callback_return::ArrayCallbackReturn as EslintArrayCallbackReturn;
 pub use crate::rules::eslint::arrow_body_style::ArrowBodyStyle as EslintArrowBodyStyle;
@@ -666,7 +673,6 @@ use crate::{
 };
 use oxc_semantic::AstTypesBitset;
 #[derive(Debug, Clone)]
-#[expect(clippy::enum_variant_names)]
 pub enum RuleEnum {
     EslintAccessorPairs(EslintAccessorPairs),
     EslintArrayCallbackReturn(EslintArrayCallbackReturn),
@@ -11190,7 +11196,7 @@ impl RuleEnum {
             Self::VueValidDefineProps(rule) => rule.run(node, ctx),
         }
     }
-    pub(crate) fn run_once<'a>(&self, ctx: &LintContext<'a>) {
+    pub(crate) fn run_once(&self, ctx: &LintContext<'_>) {
         match self {
             Self::EslintAccessorPairs(rule) => rule.run_once(ctx),
             Self::EslintArrayCallbackReturn(rule) => rule.run_once(ctx),

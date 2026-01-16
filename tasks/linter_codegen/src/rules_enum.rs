@@ -9,6 +9,14 @@ pub fn generate_rules_enum(rule_entries: &[RuleEntry<'_>]) -> String {
     let header = quote! {
         // Auto-generated code, DO NOT EDIT DIRECTLY!
         // To regenerate: `cargo run -p oxc_linter_codegen`
+
+        #![expect(
+            clippy::default_constructed_unit_structs,  // Many rules are unit structs
+            clippy::semicolon_if_nothing_returned,     // Match arms in void-returning methods
+            clippy::wrong_self_convention,             // from_configuration takes &self
+            clippy::missing_errors_doc,                // Generated code
+            clippy::match_same_arms,                   // plugin_name() has many same-body arms
+        )]
     };
 
     let use_statements = generate_use_statements(rule_entries);
@@ -89,7 +97,6 @@ fn generate_rule_enum(rule_entries: &[RuleEntry<'_>]) -> TokenStream {
 
     quote! {
         #[derive(Debug, Clone)]
-        #[expect(clippy::enum_variant_names)]
         pub enum RuleEnum {
             #(#variants),*
         }
@@ -292,7 +299,7 @@ fn generate_rule_enum_impl(rule_entries: &[RuleEntry<'_>]) -> TokenStream {
                 }
             }
 
-            pub(crate) fn run_once<'a>(&self, ctx: &LintContext<'a>) {
+            pub(crate) fn run_once(&self, ctx: &LintContext<'_>) {
                 match self {
                     #(#run_once_arms),*
                 }
