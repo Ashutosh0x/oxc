@@ -41,6 +41,7 @@ mod generated {
     #[cfg(debug_assertions)]
     mod assert_layouts;
     mod rule_runner_impls;
+    pub mod rules_enum;
 }
 
 #[cfg(test)]
