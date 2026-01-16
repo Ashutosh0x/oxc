@@ -23,7 +23,7 @@ let loadJsConfigs: typeof loadJsConfigsWrapper | null = null;
 function loadPluginWrapper(
   path: string,
   pluginName: string | null,
-  pluginNameIsAlias: boolean
+  pluginNameIsAlias: boolean,
 ): Promise<string> {
   if (loadPlugin === null) {
     // Use promises here instead of making `loadPluginWrapper` an async function,
@@ -71,20 +71,12 @@ function lintFileWrapper(
   ruleIds: number[],
   optionsIds: number[],
   settingsJSON: string,
-  globalsJSON: string
+  globalsJSON: string,
 ): string | null {
   // `lintFileWrapper` is never called without `loadPluginWrapper` being called first,
   // so `lintFile` must be defined here
   debugAssertIsNonNull(lintFile);
-  return lintFile(
-    filePath,
-    bufferId,
-    buffer,
-    ruleIds,
-    optionsIds,
-    settingsJSON,
-    globalsJSON
-  );
+  return lintFile(filePath, bufferId, buffer, ruleIds, optionsIds, settingsJSON, globalsJSON);
 }
 
 /**
@@ -116,7 +108,7 @@ const success = await lint(
   loadPluginWrapper,
   setupRuleConfigsWrapper,
   lintFileWrapper,
-  loadJsConfigsWrapper
+  loadJsConfigsWrapper,
 );
 
 // Note: It's recommended to set `process.exitCode` instead of calling `process.exit()`.
