@@ -1,4 +1,4 @@
-ts compatibility: 584/603 (96.85%)
+ts compatibility: 587/604 (97.19%)
 
 # Failed
 
@@ -17,7 +17,6 @@ ts compatibility: 584/603 (96.85%)
 | typescript/interface2/comments-ts-only/18278.ts | 💥 | 95.65% |
 | typescript/last-argument-expansion/decorated-function.tsx | 💥 | 29.06% |
 | typescript/mapped-type/issue-11098.ts | 💥 | 97.03% |
-| typescript/mapped-type/break-mode/break-mode.ts | 💥 | 68.75% |
 | typescript/property-signature/consistent-with-flow/comments.ts | 💥 | 80.00% |
 | typescript/top-level-await/test.ts | 💥 | 0.00% |
 | typescript/top-level-await/test.tsx | 💥 | 0.00% |
