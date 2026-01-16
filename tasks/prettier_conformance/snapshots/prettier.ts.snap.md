@@ -1,4 +1,4 @@
-ts compatibility: 581/605 (96.03%)
+ts compatibility: 584/603 (96.85%)
 
 # Failed
 
@@ -15,16 +15,11 @@ ts compatibility: 581/605 (96.03%)
 | typescript/comments/method_types.ts | 💥 | 82.05% |
 | typescript/decorators-ts/angular.ts | 💥 | 87.50% |
 | typescript/interface2/comments-ts-only/18278.ts | 💥 | 95.65% |
-| typescript/intersection/intersection-parens.ts | 💥💥 | 86.17% |
-| typescript/intersection/consistent-with-flow/intersection-parens.ts | 💥 | 69.77% |
 | typescript/last-argument-expansion/decorated-function.tsx | 💥 | 29.06% |
 | typescript/mapped-type/issue-11098.ts | 💥 | 97.03% |
 | typescript/mapped-type/break-mode/break-mode.ts | 💥 | 68.75% |
 | typescript/property-signature/consistent-with-flow/comments.ts | 💥 | 80.00% |
 | typescript/top-level-await/test.ts | 💥 | 0.00% |
 | typescript/top-level-await/test.tsx | 💥 | 0.00% |
-| typescript/union/union-parens.ts | 💥 | 92.59% |
 | typescript/union/comments/18106.ts | 💥 | 92.68% |
-| typescript/union/comments/18379.ts | 💥 | 87.27% |
-| typescript/union/comments/18389.ts | 💥 | 51.28% |
 | typescript/union/single-type/single-type.ts | 💥 | 66.67% |
