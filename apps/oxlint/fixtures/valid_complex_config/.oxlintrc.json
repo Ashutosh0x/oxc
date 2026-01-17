@@ -19,14 +19,14 @@
     "eslint/no-bitwise": ["error", { "allow": [] }],
     "eslint/no-unused-expressions": ["error", { "allowShortCircuit": true, "allowTernary": true }],
 
-    "import/consistent-type-specifier-style": "error",
+    "import/consistent-type-specifier-style": ["error", "prefer-top-level"],
     "import/no-absolute-path": ["error", { "esmodule": true, "commonjs": true, "amd": true }],
     "import/no-unassigned-import": ["error", { "allow": [] }],
     "import/no-duplicates": ["error", { "preferInline": true }],
     "import/prefer-default-export": ["error", { "target": "single" }],
 
     "react/jsx-fragments": ["error", "syntax"],
-    "react/prefer-es6-class": "error",
+    "react/prefer-es6-class": ["error", "always"],
     "react/state-in-constructor": ["error", "always"],
     "react/jsx-no-target-blank": ["error", { "allowReferrer": true }],
 
@@ -40,8 +40,8 @@
     "unicorn/explicit-length-check": ["error", { "non-zero": "greater-than" }],
     "unicorn/no-array-reverse": ["error", { "allowExpressionStatement": true }],
 
-    "vue/define-emits-declaration": "error",
-    "vue/define-props-declaration": "error",
+    "vue/define-emits-declaration": ["error", "type-based"],
+    "vue/define-props-declaration": ["error", "runtime"],
 
     "jsdoc/require-returns": ["error", { "exemptedBy": ["test"] }]
   }
