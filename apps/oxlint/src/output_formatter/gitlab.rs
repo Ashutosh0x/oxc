@@ -1,7 +1,9 @@
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::{Path, PathBuf};
 
+#[cfg(windows)]
 use cow_utils::CowUtils;
+
 use serde::Serialize;
 
 use oxc_diagnostics::{
@@ -66,7 +68,7 @@ fn find_git_root_from(start: &Path) -> Option<PathBuf> {
 ///
 /// For example, if git root is `/repo` and CWD is `/repo/packages/foo`,
 /// this returns `Some("packages/foo")`.
-fn get_repo_path_prefix() -> Option<String> {
+fn get_repo_path_prefix() -> Option<PathBuf> {
     let cwd = std::env::current_dir().ok()?;
     let git_root = find_git_root()?;
 
@@ -76,10 +78,7 @@ fn get_repo_path_prefix() -> Option<String> {
         return None;
     }
 
-    // Convert to string with forward slashes
-    let lossy = relative.to_string_lossy();
-    let prefix = lossy.cow_replace('\\', "/");
-    Some(prefix.into_owned())
+    Some(relative.to_path_buf())
 }
 
 /// Renders reports as a Gitlab Code Quality Report
@@ -92,7 +91,7 @@ struct GitlabReporter {
     diagnostics: Vec<Error>,
     /// Path prefix to prepend to CWD-relative paths to make them repo-relative.
     /// `None` if CWD is the git root or if we're not in a git repository.
-    repo_path_prefix: Option<String>,
+    repo_path_prefix: Option<PathBuf>,
 }
 
 impl GitlabReporter {
@@ -118,7 +117,7 @@ impl DiagnosticReporter for GitlabReporter {
     }
 }
 
-fn format_gitlab(diagnostics: &mut Vec<Error>, repo_path_prefix: Option<&str>) -> String {
+fn format_gitlab(diagnostics: &mut Vec<Error>, repo_path_prefix: Option<&Path>) -> String {
     let errors = diagnostics.drain(..).map(|error| {
         let Info { start, end, filename, message, severity, rule_id } = Info::new(&error);
         let severity = match severity {
@@ -145,7 +144,18 @@ fn format_gitlab(diagnostics: &mut Vec<Error>, repo_path_prefix: Option<&str>) -
                 // GitLab expects file paths to be relative to the repository
                 // root, so adjust accordingly.
                 path: match repo_path_prefix {
-                    Some(prefix) => format!("{prefix}/{filename}"),
+                    Some(prefix) => {
+                        // only do the path swap on Windows
+                        #[cfg(windows)]
+                        {
+                            let combined = prefix.join(&filename);
+                            combined.to_string_lossy().cow_replace('\\', "/").into_owned()
+                        }
+                        #[cfg(not(windows))]
+                        {
+                            prefix.join(&filename).to_string_lossy().to_string()
+                        }
+                    }
                     None => filename,
                 },
                 lines: GitlabErrorLocationLinesJson { begin: start.line, end: end.line },
@@ -160,7 +170,7 @@ fn format_gitlab(diagnostics: &mut Vec<Error>, repo_path_prefix: Option<&str>) -
 
 #[cfg(test)]
 mod test {
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
 
     use oxc_diagnostics::{
         Error, NamedSource, OxcDiagnostic,
@@ -197,7 +207,7 @@ mod test {
         assert!(value["fingerprint"].is_string()); // value is different on different architectures
         assert_eq!(value["severity"], "major");
         let location = value["location"].as_object().unwrap();
-        assert!(location["path"].as_str().unwrap().ends_with("test.ts"));
+        assert_eq!(location["path"], "apps/oxlint/test.ts");
         let lines = location["lines"].as_object().unwrap();
         assert_eq!(lines["begin"], 1);
         assert_eq!(lines["end"], 1);
@@ -230,7 +240,7 @@ mod test {
         let mut diagnostics: Vec<Error> = vec![error];
 
         // Test with a prefix
-        let result = format_gitlab(&mut diagnostics, Some("packages/foo"));
+        let result = format_gitlab(&mut diagnostics, Some(Path::new("packages/foo")));
         let json: serde_json::Value = serde_json::from_str(&result).unwrap();
         let path = json[0]["location"]["path"].as_str().unwrap();
         assert_eq!(path, "packages/foo/example.js");
@@ -249,5 +259,21 @@ mod test {
         let json: serde_json::Value = serde_json::from_str(&result).unwrap();
         let path = json[0]["location"]["path"].as_str().unwrap();
         assert_eq!(path, "example.js");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn format_gitlab_windows_normalization() {
+        let error = OxcDiagnostic::warn("test error")
+            .with_label(Span::new(0, 5))
+            .with_source_code(NamedSource::new("example.js", "const x = 1;"));
+
+        let mut diagnostics: Vec<Error> = vec![error];
+
+        // Windows-style prefix with backslashes should be normalized to forward slashes
+        let result = format_gitlab(&mut diagnostics, Some(Path::new(r"packages\foo")));
+        let json: serde_json::Value = serde_json::from_str(&result).unwrap();
+        let path = json[0]["location"]["path"].as_str().unwrap();
+        assert_eq!(path, "packages/foo/example.js");
     }
 }
