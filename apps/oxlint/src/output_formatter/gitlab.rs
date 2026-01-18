@@ -174,7 +174,7 @@ mod test {
 
         let error = OxcDiagnostic::warn("error message")
             .with_label(Span::new(0, 8))
-            .with_source_code(NamedSource::new("file://test.ts", "debugger;"));
+            .with_source_code(NamedSource::new("test.ts", "debugger;"));
 
         let first_result = reporter.render_error(error);
 
@@ -195,9 +195,7 @@ mod test {
         assert!(value["fingerprint"].is_string()); // value is different on different architectures
         assert_eq!(value["severity"], "major");
         let location = value["location"].as_object().unwrap();
-        // Note: The path may be prefixed with the repo path if tests are run from a subdirectory.
-        // The test verifies the path ends with the expected filename.
-        assert!(location["path"].as_str().unwrap().ends_with("file://test.ts"));
+        assert!(location["path"].as_str().unwrap().ends_with("test.ts"));
         let lines = location["lines"].as_object().unwrap();
         assert_eq!(lines["begin"], 1);
         assert_eq!(lines["end"], 1);
