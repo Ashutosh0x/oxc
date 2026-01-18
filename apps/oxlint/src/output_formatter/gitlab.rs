@@ -1,6 +1,7 @@
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::{Path, PathBuf};
 
+use cow_utils::CowUtils;
 use serde::Serialize;
 
 use oxc_diagnostics::{
@@ -76,8 +77,9 @@ fn get_repo_path_prefix() -> Option<String> {
     }
 
     // Convert to string with forward slashes
-    let prefix = relative.to_string_lossy().replace('\\', "/");
-    Some(prefix)
+    let lossy = relative.to_string_lossy();
+    let prefix = lossy.cow_replace('\\', "/");
+    Some(prefix.into_owned())
 }
 
 /// Renders reports as a Gitlab Code Quality Report
