@@ -149,9 +149,9 @@ mod test {
             formats.push("gitlab");
         }
 
-        for fmt in formats.iter() {
-            let args_vec = vec![format!("--format={fmt}"), "test.js".to_string()];
-            let args_ref: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
+        for fmt in &formats {
+            let args_vec = [format!("--format={fmt}"), "test.js".to_string()];
+            let args_ref: Vec<&str> = args_vec.iter().map(std::string::String::as_str).collect();
             Tester::new().with_cwd(TEST_CWD.into()).test_and_snapshot(&args_ref);
         }
     }
@@ -173,9 +173,9 @@ mod test {
             formats.push("gitlab");
         }
 
-        for fmt in formats.iter() {
-            let args_vec = vec![format!("--format={fmt}"), "ok.js".to_string()];
-            let args_ref: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
+        for fmt in &formats {
+            let args_vec = [format!("--format={fmt}"), "ok.js".to_string()];
+            let args_ref: Vec<&str> = args_vec.iter().map(std::string::String::as_str).collect();
             Tester::new().with_cwd(TEST_CWD.into()).test_and_snapshot(&args_ref);
         }
     }
@@ -198,13 +198,13 @@ mod test {
             formats.push("gitlab");
         }
 
-        for fmt in formats.iter() {
-            let args_vec = vec![
+        for fmt in &formats {
+            let args_vec = [
                 format!("--format={fmt}"),
                 "--report-unused-disable-directives".to_string(),
                 "disable-directive.js".to_string(),
             ];
-            let args_ref: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
+            let args_ref: Vec<&str> = args_vec.iter().map(std::string::String::as_str).collect();
             Tester::new().with_cwd(TEST_CWD.into()).test_and_snapshot(&args_ref);
         }
     }
