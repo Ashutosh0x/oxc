@@ -125,12 +125,6 @@ fn format_gitlab(diagnostics: &mut Vec<Error>, repo_path_prefix: Option<&str>) -
             Severity::Advice => "minor".to_string(),
         };
 
-        // Build the repo-relative path by prepending the prefix if we're in a subdirectory
-        let path = match repo_path_prefix {
-            Some(prefix) => format!("{prefix}/{filename}"),
-            None => filename.clone(),
-        };
-
         let fingerprint = {
             let mut hasher = DefaultHasher::new();
             start.line.hash(&mut hasher);
@@ -146,7 +140,12 @@ fn format_gitlab(diagnostics: &mut Vec<Error>, repo_path_prefix: Option<&str>) -
             description: message,
             check_name: rule_id.unwrap_or_default(),
             location: GitlabErrorLocationJson {
-                path,
+                // GitLab expects file paths to be relative to the repository
+                // root, so adjust accordingly.
+                path: match repo_path_prefix {
+                    Some(prefix) => format!("{prefix}/{filename}"),
+                    None => filename,
+                },
                 lines: GitlabErrorLocationLinesJson { begin: start.line, end: end.line },
             },
             fingerprint,
