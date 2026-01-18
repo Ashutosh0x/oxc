@@ -132,35 +132,6 @@ mod test {
 
     const TEST_CWD: &str = "fixtures/output_formatter_diagnostic";
 
-    #[test]
-    fn test_output_formatter_diagnostic_checkstyle() {
-        let args = &["--format=checkstyle", "test.js"];
-
-        Tester::new().with_cwd(TEST_CWD.into()).test_and_snapshot(args);
-    }
-
-    #[test]
-    fn test_output_formatter_diagnostic_default() {
-        let args = &["--format=default", "test.js"];
-
-        Tester::new().with_cwd(TEST_CWD.into()).test_and_snapshot(args);
-    }
-
-    #[test]
-    fn test_output_formatter_diagnostic_github() {
-        let args = &["--format=github", "test.js"];
-
-        Tester::new().with_cwd(TEST_CWD.into()).test_and_snapshot(args);
-    }
-
-    #[cfg(not(target_endian = "big"))] // Apparently the fingerprint hash is different on big-endian systems.
-    #[test]
-    fn test_output_formatter_diagnostic_gitlab() {
-        let args = &["--format=gitlab", "test.js"];
-
-        Tester::new().with_cwd(TEST_CWD.into()).test_and_snapshot(args);
-    }
-
     /// disabled for windows
     /// json will output the offset which will be different for windows
     /// when there are multiple lines (`\r\n` vs `\n`)
@@ -173,23 +144,19 @@ mod test {
     }
 
     #[test]
-    fn test_output_formatter_diagnostic_junit() {
-        let args = &["--format=junit", "test.js"];
+    fn test_output_formatter_diagnostic_formats() {
+        let mut formats: Vec<&str> =
+            vec!["checkstyle", "default", "github", "junit", "stylish", "unix"];
 
-        Tester::new().with_cwd(TEST_CWD.into()).test_and_snapshot(args);
-    }
+        // Exclude `gitlab` on big-endian systems because fingerprints differ there
+        if cfg!(not(target_endian = "big")) {
+            formats.push("gitlab");
+        }
 
-    #[test]
-    fn test_output_formatter_diagnostic_stylish() {
-        let args = &["--format=stylish", "test.js"];
-
-        Tester::new().with_cwd(TEST_CWD.into()).test_and_snapshot(args);
-    }
-
-    #[test]
-    fn test_output_formatter_diagnostic_unix() {
-        let args = &["--format=unix", "test.js"];
-
-        Tester::new().with_cwd(TEST_CWD.into()).test_and_snapshot(args);
+        for fmt in formats.iter() {
+            let args_vec = vec![format!("--format={fmt}"), "test.js".to_string()];
+            let args_ref: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
+            Tester::new().with_cwd(TEST_CWD.into()).test_and_snapshot(&args_ref);
+        }
     }
 }
