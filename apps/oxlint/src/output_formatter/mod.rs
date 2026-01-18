@@ -159,4 +159,32 @@ mod test {
             Tester::new().with_cwd(TEST_CWD.into()).test_and_snapshot(&args_ref);
         }
     }
+
+    /// disabled for windows
+    /// json will output the offset which will be different for windows
+    /// when there are multiple lines (`\r\n` vs `\n`)
+    #[cfg(all(test, not(target_os = "windows")))]
+    #[test]
+    fn test_output_formatter_diagnostic_json_success() {
+        let args = &["--format=json", "ok.js"];
+
+        Tester::new().with_cwd(TEST_CWD.into()).test_and_snapshot(args);
+    }
+
+    #[test]
+    fn test_output_formatter_diagnostic_formats_success() {
+        let mut formats: Vec<&str> =
+            vec!["checkstyle", "default", "github", "junit", "stylish", "unix"];
+
+        // Exclude `gitlab` on big-endian systems because fingerprints differ there
+        if cfg!(not(target_endian = "big")) {
+            formats.push("gitlab");
+        }
+
+        for fmt in formats.iter() {
+            let args_vec = vec![format!("--format={fmt}"), "ok.js".to_string()];
+            let args_ref: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
+            Tester::new().with_cwd(TEST_CWD.into()).test_and_snapshot(&args_ref);
+        }
+    }
 }
