@@ -216,7 +216,7 @@ mod test {
         let path = PathBuf::from("/");
         let git_root = find_git_root_from(&path);
         // Root directory typically doesn't have a .git folder
-        assert!(git_root.is_none() || git_root.unwrap() == PathBuf::from("/"));
+        assert!(git_root.is_none() || *git_root.unwrap() == *"/");
     }
 
     #[test]
@@ -225,7 +225,7 @@ mod test {
             .with_label(Span::new(0, 5))
             .with_source_code(NamedSource::new("example.js", "const x = 1;"));
 
-        let mut diagnostics: Vec<Error> = vec![error.into()];
+        let mut diagnostics: Vec<Error> = vec![error];
 
         // Test with a prefix
         let result = format_gitlab(&mut diagnostics, Some("packages/foo"));
@@ -240,7 +240,7 @@ mod test {
             .with_label(Span::new(0, 5))
             .with_source_code(NamedSource::new("example.js", "const x = 1;"));
 
-        let mut diagnostics: Vec<Error> = vec![error.into()];
+        let mut diagnostics: Vec<Error> = vec![error];
 
         // Test without a prefix (CWD is at git root)
         let result = format_gitlab(&mut diagnostics, None);
