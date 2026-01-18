@@ -4,7 +4,7 @@
 // oxlint-disable-next-line eslint/no-debugger
 debugger;
 
-// These three should result in diagnostics as they are all used:
+// These three should result in diagnostics as they are all unused:
 
 // eslint-disable-next-line no-debugger
 const foo = 3;
