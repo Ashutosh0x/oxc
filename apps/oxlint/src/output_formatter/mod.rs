@@ -132,21 +132,17 @@ mod test {
 
     const TEST_CWD: &str = "fixtures/output_formatter_diagnostic";
 
-    /// disabled for windows
-    /// json will output the offset which will be different for windows
-    /// when there are multiple lines (`\r\n` vs `\n`)
-    #[cfg(all(test, not(target_os = "windows")))]
-    #[test]
-    fn test_output_formatter_diagnostic_json() {
-        let args = &["--format=json", "test.js"];
-
-        Tester::new().with_cwd(TEST_CWD.into()).test_and_snapshot(args);
-    }
-
     #[test]
     fn test_output_formatter_diagnostic_formats() {
         let mut formats: Vec<&str> =
             vec!["checkstyle", "default", "github", "junit", "stylish", "unix"];
+
+        // disabled for windows
+        // json will output the offset which will be different for windows
+        // when there are multiple lines (`\r\n` vs `\n`)
+        if cfg!(not(target_os = "windows")) {
+            formats.push("json");
+        }
 
         // Exclude `gitlab` on big-endian systems because fingerprints differ there
         if cfg!(not(target_endian = "big")) {
@@ -160,21 +156,17 @@ mod test {
         }
     }
 
-    /// disabled for windows
-    /// json will output the offset which will be different for windows
-    /// when there are multiple lines (`\r\n` vs `\n`)
-    #[cfg(all(test, not(target_os = "windows")))]
-    #[test]
-    fn test_output_formatter_diagnostic_json_success() {
-        let args = &["--format=json", "ok.js"];
-
-        Tester::new().with_cwd(TEST_CWD.into()).test_and_snapshot(args);
-    }
-
     #[test]
     fn test_output_formatter_diagnostic_formats_success() {
         let mut formats: Vec<&str> =
             vec!["checkstyle", "default", "github", "junit", "stylish", "unix"];
+
+        // disabled for windows
+        // json will output the offset which will be different for windows
+        // when there are multiple lines (`\r\n` vs `\n`)
+        if cfg!(not(target_os = "windows")) {
+            formats.push("json");
+        }
 
         // Exclude `gitlab` on big-endian systems because fingerprints differ there
         if cfg!(not(target_endian = "big")) {
