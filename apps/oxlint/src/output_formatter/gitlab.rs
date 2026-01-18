@@ -1,4 +1,5 @@
 use std::hash::{DefaultHasher, Hash, Hasher};
+use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
@@ -35,8 +36,48 @@ struct GitlabErrorJson {
 
 impl InternalFormatter for GitlabOutputFormatter {
     fn get_diagnostic_reporter(&self) -> Box<dyn DiagnosticReporter> {
-        Box::new(GitlabReporter::default())
+        Box::new(GitlabReporter::new())
     }
+}
+
+/// Find the git repository root by walking up from the current directory.
+/// Returns `None` if no `.git` directory is found.
+fn find_git_root() -> Option<PathBuf> {
+    let cwd = std::env::current_dir().ok()?;
+    find_git_root_from(&cwd)
+}
+
+/// Find the git repository root by walking up from the given path.
+fn find_git_root_from(start: &Path) -> Option<PathBuf> {
+    let mut current = start.to_path_buf();
+    loop {
+        if current.join(".git").exists() {
+            return Some(current);
+        }
+        if !current.pop() {
+            return None;
+        }
+    }
+}
+
+/// Get the path prefix from CWD to the git repository root.
+/// This prefix should be prepended to CWD-relative paths to make them repo-relative.
+///
+/// For example, if git root is `/repo` and CWD is `/repo/packages/foo`,
+/// this returns `Some("packages/foo")`.
+fn get_repo_path_prefix() -> Option<String> {
+    let cwd = std::env::current_dir().ok()?;
+    let git_root = find_git_root()?;
+
+    // Get the relative path from git root to CWD
+    let relative = cwd.strip_prefix(&git_root).ok()?;
+    if relative.as_os_str().is_empty() {
+        return None;
+    }
+
+    // Convert to string with forward slashes
+    let prefix = relative.to_string_lossy().replace('\\', "/");
+    Some(prefix)
 }
 
 /// Renders reports as a Gitlab Code Quality Report
@@ -45,14 +86,28 @@ impl InternalFormatter for GitlabOutputFormatter {
 ///
 /// Note that, due to syntactic restrictions of JSON arrays, this reporter waits until all
 /// diagnostics have been reported before writing them to the output stream.
-#[derive(Default)]
 struct GitlabReporter {
     diagnostics: Vec<Error>,
+    /// Path prefix to prepend to CWD-relative paths to make them repo-relative.
+    /// `None` if CWD is the git root or if we're not in a git repository.
+    repo_path_prefix: Option<String>,
+}
+
+impl GitlabReporter {
+    fn new() -> Self {
+        Self { diagnostics: Vec::new(), repo_path_prefix: get_repo_path_prefix() }
+    }
+}
+
+impl Default for GitlabReporter {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl DiagnosticReporter for GitlabReporter {
     fn finish(&mut self, _: &DiagnosticResult) -> Option<String> {
-        Some(format_gitlab(&mut self.diagnostics))
+        Some(format_gitlab(&mut self.diagnostics, self.repo_path_prefix.as_deref()))
     }
 
     fn render_error(&mut self, error: Error) -> Option<String> {
@@ -61,13 +116,19 @@ impl DiagnosticReporter for GitlabReporter {
     }
 }
 
-fn format_gitlab(diagnostics: &mut Vec<Error>) -> String {
+fn format_gitlab(diagnostics: &mut Vec<Error>, repo_path_prefix: Option<&str>) -> String {
     let errors = diagnostics.drain(..).map(|error| {
         let Info { start, end, filename, message, severity, rule_id } = Info::new(&error);
         let severity = match severity {
             Severity::Error => "critical".to_string(),
             Severity::Warning => "major".to_string(),
             Severity::Advice => "minor".to_string(),
+        };
+
+        // Build the repo-relative path by prepending the prefix if we're in a subdirectory
+        let path = match repo_path_prefix {
+            Some(prefix) => format!("{prefix}/{filename}"),
+            None => filename.clone(),
         };
 
         let fingerprint = {
@@ -85,7 +146,7 @@ fn format_gitlab(diagnostics: &mut Vec<Error>) -> String {
             description: message,
             check_name: rule_id.unwrap_or_default(),
             location: GitlabErrorLocationJson {
-                path: filename,
+                path,
                 lines: GitlabErrorLocationLinesJson { begin: start.line, end: end.line },
             },
             fingerprint,
@@ -98,13 +159,15 @@ fn format_gitlab(diagnostics: &mut Vec<Error>) -> String {
 
 #[cfg(test)]
 mod test {
+    use std::path::PathBuf;
+
     use oxc_diagnostics::{
-        NamedSource, OxcDiagnostic,
+        Error, NamedSource, OxcDiagnostic,
         reporter::{DiagnosticReporter, DiagnosticResult},
     };
     use oxc_span::Span;
 
-    use super::GitlabReporter;
+    use super::{GitlabReporter, find_git_root_from, format_gitlab};
 
     #[test]
     fn reporter() {
@@ -133,9 +196,59 @@ mod test {
         assert!(value["fingerprint"].is_string()); // value is different on different architectures
         assert_eq!(value["severity"], "major");
         let location = value["location"].as_object().unwrap();
-        assert_eq!(location["path"], "file://test.ts");
+        // Note: The path may be prefixed with the repo path if tests are run from a subdirectory.
+        // The test verifies the path ends with the expected filename.
+        assert!(location["path"].as_str().unwrap().ends_with("file://test.ts"));
         let lines = location["lines"].as_object().unwrap();
         assert_eq!(lines["begin"], 1);
         assert_eq!(lines["end"], 1);
+    }
+
+    #[test]
+    fn find_git_root_from_current_dir() {
+        // This test runs from within the oxc repo, so we should find a git root
+        let cwd = std::env::current_dir().unwrap();
+        let git_root = find_git_root_from(&cwd);
+        assert!(git_root.is_some());
+        assert!(git_root.unwrap().join(".git").exists());
+    }
+
+    #[test]
+    fn find_git_root_from_nonexistent() {
+        // A path that doesn't exist or has no git repo
+        let path = PathBuf::from("/");
+        let git_root = find_git_root_from(&path);
+        // Root directory typically doesn't have a .git folder
+        assert!(git_root.is_none() || git_root.unwrap() == PathBuf::from("/"));
+    }
+
+    #[test]
+    fn format_gitlab_with_prefix() {
+        let error = OxcDiagnostic::warn("test error")
+            .with_label(Span::new(0, 5))
+            .with_source_code(NamedSource::new("example.js", "const x = 1;"));
+
+        let mut diagnostics: Vec<Error> = vec![error.into()];
+
+        // Test with a prefix
+        let result = format_gitlab(&mut diagnostics, Some("packages/foo"));
+        let json: serde_json::Value = serde_json::from_str(&result).unwrap();
+        let path = json[0]["location"]["path"].as_str().unwrap();
+        assert_eq!(path, "packages/foo/example.js");
+    }
+
+    #[test]
+    fn format_gitlab_without_prefix() {
+        let error = OxcDiagnostic::warn("test error")
+            .with_label(Span::new(0, 5))
+            .with_source_code(NamedSource::new("example.js", "const x = 1;"));
+
+        let mut diagnostics: Vec<Error> = vec![error.into()];
+
+        // Test without a prefix (CWD is at git root)
+        let result = format_gitlab(&mut diagnostics, None);
+        let json: serde_json::Value = serde_json::from_str(&result).unwrap();
+        let path = json[0]["location"]["path"].as_str().unwrap();
+        assert_eq!(path, "example.js");
     }
 }
