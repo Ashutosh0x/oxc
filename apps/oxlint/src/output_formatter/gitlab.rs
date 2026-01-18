@@ -39,7 +39,7 @@ struct GitlabErrorJson {
 
 impl InternalFormatter for GitlabOutputFormatter {
     fn get_diagnostic_reporter(&self) -> Box<dyn DiagnosticReporter> {
-        Box::new(GitlabReporter::new())
+        Box::new(GitlabReporter::default())
     }
 }
 
@@ -95,14 +95,8 @@ struct GitlabReporter {
 }
 
 impl GitlabReporter {
-    fn new() -> Self {
-        Self { diagnostics: Vec::new(), repo_path_prefix: get_repo_path_prefix() }
-    }
-}
-
-impl Default for GitlabReporter {
     fn default() -> Self {
-        Self::new()
+        Self { diagnostics: Vec::new(), repo_path_prefix: get_repo_path_prefix() }
     }
 }
 
