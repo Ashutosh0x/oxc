@@ -154,13 +154,20 @@ impl CatchErrorName {
             return true;
         }
 
-        // Allow a qualified name, e.g. if we allow "error",
-        // should also allow "diagnostic_error" or "diagnosticError".
-        if name.to_lowercase().ends_with(&self.name.as_str().to_lowercase()) {
+        // strip all trailing underscores from the name.
+        let stripped_name = name.trim_end_matches('_').to_lowercase();
+
+        if self.name == stripped_name {
             return true;
         }
 
-        // Check configured ignore patterns
+        // Allow a qualified name, e.g. if we allow "error",
+        // should also allow "diagnostic_error" or "diagnosticError".
+        if stripped_name.ends_with(&self.name.as_str().to_lowercase()) {
+            return true;
+        }
+
+        // Check configured ignore patterns, do not use stripped name
         self.ignore.iter().any(|s| s.is_match(name))
     }
 
@@ -411,7 +418,7 @@ fn test() {
                                 console.log(_);
                             }
                         ",
-            Some(serde_json::json!([ { "ignore": ["^_$"], }, ])),
+            Some(serde_json::json!([ { "ignore": ["^_$"] } ])),
         ),
         ("try {} catch (error) {}", None),
         ("try {} catch (error__) {}", None),
