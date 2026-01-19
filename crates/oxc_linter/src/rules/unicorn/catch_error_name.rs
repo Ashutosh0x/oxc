@@ -219,39 +219,39 @@ fn test() {
         (
             "try {
             } catch (outerError) {
-            	try {
-            	} catch (innerError) {}
+                try {
+                } catch (innerError) {}
             }",
             None,
         ),
         (
             "const handleError = error => {
-            	try {
-            		doSomething();
-            	} catch (error_) {
-            		console.log(error_);
-            	}
+                try {
+                    doSomething();
+                } catch (error_) {
+                    console.log(error_);
+                }
             }",
             None,
         ),
         (
             "const handleError = err => {
-            	try {
-            		doSomething();
-            	} catch (err_) {
-            		console.log(err_);
-            	}
+                try {
+                    doSomething();
+                } catch (err_) {
+                    console.log(err_);
+                }
             }",
             Some(serde_json::json!([{"name": "err"}])),
         ),
         (
             "const handleError = error => {
-            	const error_ = new Error('🦄');
-            	try {
-            		doSomething();
-            	} catch (error__) {
-            		console.log(error__);
-            	}
+                const error_ = new Error('🦄');
+                try {
+                    doSomething();
+                } catch (error__) {
+                    console.log(error__);
+                }
             }",
             None,
         ),
@@ -263,54 +263,54 @@ fn test() {
         ("obj.then?.(result => {}, error => {})", None),
         (
             "const handleError = error => {
-            	obj.catch(error_ => { });
+                obj.catch(error_ => { });
             }",
             None,
         ),
         (
             "const handleError = error => {
-            	obj.then(undefined, error_ => { });
+                obj.then(undefined, error_ => { });
             }",
             None,
         ),
         (
             "const handleError = err => {
-            	obj.catch(err_ => { });
+                obj.catch(err_ => { });
             }",
             Some(serde_json::json!([{"name": "err"}])),
         ),
         (
             "const handleError = err => {
-            	obj.then(undefined, err_ => { });
+                obj.then(undefined, err_ => { });
             }",
             Some(serde_json::json!([{"name": "err"}])),
         ),
         (
             "const handleError = error => {
-            	const error_ = new Error('foo bar');
-            	obj.catch(error__ => { });
+                const error_ = new Error('foo bar');
+                obj.catch(error__ => { });
             }",
             None,
         ),
         (
             "const handleError = error => {
-            	const error_ = new Error('foo bar');
-            	obj.then(undefined, error__ => { });
+                const error_ = new Error('foo bar');
+                obj.then(undefined, error__ => { });
             }",
             None,
         ),
         (
             "const handleError = error => {
-            	const error_ = new Error('foo bar');
-            	const error__ = new Error('foo bar');
-            	const error___ = new Error('foo bar');
-            	const error____ = new Error('foo bar');
-            	const error_____ = new Error('foo bar');
-            	const error______ = new Error('foo bar');
-            	const error_______ = new Error('foo bar');
-            	const error________ = new Error('foo bar');
-            	const error_________ = new Error('foo bar');
-            	obj.catch(error__________ => { });
+                const error_ = new Error('foo bar');
+                const error__ = new Error('foo bar');
+                const error___ = new Error('foo bar');
+                const error____ = new Error('foo bar');
+                const error_____ = new Error('foo bar');
+                const error______ = new Error('foo bar');
+                const error_______ = new Error('foo bar');
+                const error________ = new Error('foo bar');
+                const error_________ = new Error('foo bar');
+                obj.catch(error__________ => { });
             }",
             None,
         ),
@@ -319,9 +319,9 @@ fn test() {
         ("obj.then(undefined, err => {})", Some(serde_json::json!([{"name": "err"}]))),
         (
             "obj.catch(
-            	outerError => {
-            		return obj2.catch(innerError => {})
-            	}
+                outerError => {
+                    return obj2.catch(innerError => {})
+                }
             )",
             None,
         ),
@@ -335,29 +335,29 @@ fn test() {
         ("obj.then(undefined, function (err) {})", Some(serde_json::json!([{"name": "err"}]))),
         (
             "obj.catch(function (outerError) {
-            	return obj2.catch(function (innerError) {
-            	})
+                return obj2.catch(function (innerError) {
+                })
             })",
             None,
         ),
         (
             "obj.then(undefined, function (outerError) {
-            	return obj2.then(undefined, function (innerError) {
-            	})
+                return obj2.then(undefined, function (innerError) {
+                })
             })",
             None,
         ),
         (
             "obj.then(undefined, function (outerError) {
-            	return obj2.catch(function (innerError) {
-            	})
+                return obj2.catch(function (innerError) {
+                })
             })",
             None,
         ),
         (
             "obj.catch(function (outerError) {
-            	return obj2.then(undefined, function (innerError) {
-            	})
+                return obj2.then(undefined, function (innerError) {
+                })
             })",
             None,
         ),
@@ -367,9 +367,9 @@ fn test() {
         ("foo().catch(function (error) {})", None),
         (
             "try {
-            	throw new Error('message');
+                throw new Error('message');
             } catch {
-            	console.log('failed');
+                console.log('failed');
             }",
             None,
         ),
@@ -387,18 +387,18 @@ fn test() {
         (
             "try {
             } catch (_) {
-            	try {
-            	} catch (_) {}
+                try {
+                } catch (_) {}
             }",
             None,
         ),
         (
             "
-            				try {
-            				} catch (_) {
-            					console.log(_);
-            				}
-            			",
+                            try {
+                            } catch (_) {
+                                console.log(_);
+                            }
+                        ",
             Some(serde_json::json!([ { "ignore": ["^_$"], }, ])),
         ),
         ("try {} catch (error) {}", None),
@@ -427,29 +427,29 @@ fn test() {
     let fail = vec![
         (
             "const handleError = error => {
-            	try {
-            		doSomething();
-            	} catch (foo) {
-            		console.log(foo);
-            	}
+                try {
+                    doSomething();
+                } catch (foo) {
+                    console.log(foo);
+                }
             }",
             None,
         ),
         (
             "const handleError = error => {
-            	const error9 = new Error('foo bar');
-            	try {
-            		doSomething();
-            	} catch (foo) {
-            		console.log(foo);
-            	}
+                const error9 = new Error('foo bar');
+                try {
+                    doSomething();
+                } catch (foo) {
+                    console.log(foo);
+                }
             }",
             None,
         ),
         (
             "const handleError = error => {
-            	const error_ = new Error('foo bar');
-            	obj.catch(foo => { });
+                const error_ = new Error('foo bar');
+                obj.catch(foo => { });
             }",
             None,
         ),
@@ -484,52 +484,52 @@ fn test() {
         (
             "try {
             } catch (_) {
-            	console.log(_)
-            	try {
-            	} catch (_) {
-            		console.log(_)
-            	}
+                console.log(_)
+                try {
+                } catch (_) {
+                    console.log(_)
+                }
             }",
             None,
         ),
         (
             "foo.then(() => {
-            	try {} catch (e) {}
+                try {} catch (e) {}
             }).catch(err => err);",
             None,
         ),
         (
             "try {
-            	doSomething();
+                doSomething();
             } catch (anyName) { // Nesting of catch clauses disables the rule
-            	try {
-            		doSomethingElse();
-            	} catch (anyOtherName) {
-            		// ...
-            	}
+                try {
+                    doSomethingElse();
+                } catch (anyOtherName) {
+                    // ...
+                }
             }",
             None,
         ),
         (
             r#"@DragSource({
-            	async endDrag(props, monitor, component) {
-            		try {
-            		} catch (e) {
-            			alert("There was a problem moving these items: " + e);
-            		}
-            	}
+                async endDrag(props, monitor, component) {
+                    try {
+                    } catch (e) {
+                        alert("There was a problem moving these items: " + e);
+                    }
+                }
             })
             export default class A {}"#,
             None,
         ),
         (
             r#"@DragSource({
-            	async endDrag(props, monitor, component) {
-            		try {
-            		} catch (e) {
-            			alert("1There was a problem moving these items: " + e);
-            		}
-            	}
+                async endDrag(props, monitor, component) {
+                    try {
+                    } catch (e) {
+                        alert("1There was a problem moving these items: " + e);
+                    }
+                }
             })
             export default class A {}"#,
             None,
