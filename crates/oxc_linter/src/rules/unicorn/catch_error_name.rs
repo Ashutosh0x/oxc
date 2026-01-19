@@ -1,3 +1,4 @@
+use cow_utils::CowUtils;
 use lazy_regex::Regex;
 use oxc_ast::{
     AstKind,
@@ -155,15 +156,15 @@ impl CatchErrorName {
         }
 
         // strip all trailing underscores from the name.
-        let stripped_name = name.trim_end_matches('_').to_lowercase();
+        let stripped_name = name.trim_end_matches('_').cow_to_lowercase();
 
-        if self.name == stripped_name {
+        if self.name == stripped_name.as_ref() {
             return true;
         }
 
         // Allow a qualified name, e.g. if we allow "error",
         // should also allow "diagnostic_error" or "diagnosticError".
-        if stripped_name.ends_with(&self.name.as_str().to_lowercase()) {
+        if stripped_name.ends_with(self.name.as_str().cow_to_lowercase().as_ref()) {
             return true;
         }
 
