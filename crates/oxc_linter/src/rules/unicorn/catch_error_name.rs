@@ -154,8 +154,9 @@ impl CatchErrorName {
             return true;
         }
 
-        // Allow a qualified name, e.g. if we allow "error", should also allow "diagnostic_error".
-        if name.ends_with(self.name.as_str()) {
+        // Allow a qualified name, e.g. if we allow "error",
+        // should also allow "diagnostic_error" or "diagnosticError".
+        if name.to_lowercase().ends_with(&self.name.as_str().to_lowercase()) {
             return true;
         }
 
