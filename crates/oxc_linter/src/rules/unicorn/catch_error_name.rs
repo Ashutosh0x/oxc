@@ -149,7 +149,18 @@ impl Rule for CatchErrorName {
 
 impl CatchErrorName {
     fn is_name_allowed(&self, name: &str) -> bool {
-        self.name == name || self.ignore.iter().any(|s| s.is_match(name))
+        // Allow exact match
+        if self.name == name {
+            return true;
+        }
+
+        // Allow a qualified name, e.g. if we allow "error", should also allow "diagnostic_error".
+        if name.ends_with(self.name.as_str()) {
+            return true;
+        }
+
+        // Check configured ignore patterns
+        self.ignore.iter().any(|s| s.is_match(name))
     }
 
     fn check_function_arguments(&self, arg: &Argument, ctx: &LintContext) {
