@@ -441,6 +441,20 @@ fn test() {
             Some(serde_json::json!([{"ignore": ["error\\d*"]}])),
         ),
         ("promise.catch(unicorn => {})", Some(serde_json::json!([{"ignore": ["unicorn"]}]))),
+        // https://github.com/oxc-project/oxc/issues/12430
+        (
+            "try {
+                // some codes
+                } catch (error: unknown) {
+                try {
+                    // some codes
+                } catch (error2: unknown) {
+                    // some codes
+                }
+            }",
+            Some(serde_json::json!([{"ignore": [ "^error\\d*$"]}])),
+        ),
+        ("try { } catch (exception) { }", Some(serde_json::json!([{"name": "exception"}]))),
     ];
 
     let fail = vec![
