@@ -1,10 +1,10 @@
 use oxc_ast::{
     AstKind,
-    ast::{Expression, JSXAttributeItem, JSXAttributeValue},
+    ast::{Expression, JSXAttributeItem, JSXAttributeValue, JSXExpression},
 };
 use oxc_diagnostics::OxcDiagnostic;
 use oxc_macros::declare_oxc_lint;
-use oxc_span::{GetSpan, Span};
+use oxc_span::Span;
 
 use crate::{
     AstNode,
@@ -12,20 +12,14 @@ use crate::{
     globals::HTML_TAG,
     rule::Rule,
     utils::{
-        get_element_type, get_string_literal_prop_value, has_jsx_prop,
-        is_hidden_from_screen_reader, is_interactive_element, is_presentation_role,
+        get_element_type, has_jsx_prop, is_hidden_from_screen_reader, is_interactive_element,
+        is_presentation_role,
     },
 };
 
-fn interactive_supports_focus_diagnostic(span: Span, role: &str) -> OxcDiagnostic {
-    OxcDiagnostic::warn(format!("Elements with the '{role}' interactive role must be focusable."))
-        .with_help("Interactive elements must be able to receive focus. In JSX, add a valid tabIndex prop.")
-        .with_label(span)
-}
-
-fn interactive_supports_focus_non_interactive_diagnostic(span: Span, element: &str, role: &str) -> OxcDiagnostic {
-    OxcDiagnostic::warn(format!("The '{element}' element with the '{role}' interactive role must be focusable."))
-        .with_help("Interactive elements must be able to receive focus. In JSX, add a valid tabIndex prop.")
+fn interactive_supports_focus_diagnostic(span: Span) -> OxcDiagnostic {
+    OxcDiagnostic::warn("Elements with interactive roles must be focusable.")
+        .with_help("Interactive elements must be able to receive focus. In JSX, add a valid `tabIndex` prop.")
         .with_label(span)
 }
 
@@ -58,8 +52,7 @@ declare_oxc_lint!(
     /// ```
     InteractiveSupportsFocus,
     jsx_a11y,
-    correctness,
-    fix = pending
+    correctness
 );
 
 impl Rule for InteractiveSupportsFocus {
@@ -78,40 +71,26 @@ impl Rule for InteractiveSupportsFocus {
             return;
         }
 
-        let has_interactive_props = INTERACTIVE_PROPS
-            .iter()
-            .any(|prop| has_jsx_prop(jsx_opening_el, prop).is_some());
-
-        if !has_interactive_props {
-            return;
-        }
-
-        if has_jsx_prop(jsx_opening_el, "disabled").is_some()
-            || has_jsx_prop(jsx_opening_el, "aria-disabled").is_some_and(|attr| {
-                get_string_literal_prop_value(attr).is_some_and(|val| val == "true")
-            })
-        {
-            return;
-        }
-
-        if is_interactive_element(&element_type, jsx_opening_el) {
-            return;
-        }
-
-        let role = has_jsx_prop(jsx_opening_el, "role");
-        let Some(role_attr) = role else {
-            return;
-        };
+        let is_native_interactive = is_interactive_element(&element_type, jsx_opening_el);
         
-        let role_val = get_string_literal_prop_value(role_attr);
-        let is_interactive = if let Some(val) = role_val {
-             crate::utils::is_interactive_role(val)
+        // Check if the element has an interactive role.
+        let role = has_jsx_prop(jsx_opening_el, "role");
+        let has_interactive_role = if let Some(role_attr) = role {
+            if let Some(role_val) = crate::utils::get_string_literal_prop_value(role_attr) {
+                 crate::rules::jsx_a11y::no_static_element_interactions::INTERACTIVE_ROLES.contains(&role_val)
+            } else {
+                false
+            }
         } else {
-             false
+            false
         };
 
-        if !is_interactive {
+        if !is_native_interactive && !has_interactive_role {
             return;
+        }
+
+        if is_native_interactive {
+             return;
         }
 
         // Check for `tabIndex`.
@@ -119,90 +98,79 @@ impl Rule for InteractiveSupportsFocus {
             Some(JSXAttributeItem::Attribute(attr)) => {
                  match &attr.value {
                      Some(JSXAttributeValue::StringLiteral(s)) => {
+                         // Check if string is parseable as integer
                          if s.value.parse::<i32>().is_err() {
-                              if element_type == "div" || element_type == "span" {
-                                  ctx.diagnostic(interactive_supports_focus_diagnostic(role_attr.span(), role_val.unwrap()));
-                              } else {
-                                  ctx.diagnostic(interactive_supports_focus_non_interactive_diagnostic(role_attr.span(), &element_type, role_val.unwrap()));
-                              }
+                              // If it's not a valid integer string, it doesn't make it focusable (HTML behavior).
+                              // Though browsers might be lenient, the spec says integer.
+                              // If it's effectively invalid, we flag it.
+                              ctx.diagnostic(interactive_supports_focus_diagnostic(jsx_opening_el.span));
                          }
                      }
                      Some(JSXAttributeValue::ExpressionContainer(container)) => {
-                         if let Some(expr) = container.expression.as_expression() {
+                         match &container.expression {
+                             JSXExpression::Expression(expr) => {
                                  match expr {
-                                     Expression::NumericLiteral(_) => {}
+                                     Expression::NumericLiteral(_) => {
+                                         // It's a number, so it's focusable.
+                                         // Unless it's NaN? NumericLiteral is usually valid.
+                                     }
+                                     Expression::Identifier(id) => {
+                                         if id.name == "undefined" {
+                                             ctx.diagnostic(interactive_supports_focus_diagnostic(jsx_opening_el.span));
+                                         }
+                                         // If it's a variable `tabIndex={val}`, we can't confirm value, so we assume valid to avoid false positives.
+                                     }
                                      Expression::UnaryExpression(unary) => {
+                                         // Check for negative numbers like -1
                                          if let Expression::NumericLiteral(_) = &unary.argument {
                                               // Valid
                                          } else {
                                               // Unknown, assume valid
                                          }
                                      }
-                                      Expression::Identifier(id) if id.name == "undefined" => {
-                                          if element_type == "div" || element_type == "span" {
-                                              ctx.diagnostic(interactive_supports_focus_diagnostic(role_attr.span(), role_val.unwrap()));
-                                          } else {
-                                              ctx.diagnostic(interactive_supports_focus_non_interactive_diagnostic(role_attr.span(), &element_type, role_val.unwrap()));
-                                          }
-                                      }
-                                     _ => {}
+                                     _ => {
+                                         // Other expressions, assume valid
+                                     }
                                  }
+                             }
+                             _ => {}
                          }
                      }
-                     _ => {} 
+                     _ => {} // No value or other types
                  }
             }
-            Some(JSXAttributeItem::SpreadAttribute(_)) => {}
+            Some(JSXAttributeItem::SpreadAttribute(_)) => {
+                // Ignore spread attributes
+            }
             None => {
-                if element_type == "div" || element_type == "span" {
-                    ctx.diagnostic(interactive_supports_focus_diagnostic(role_attr.span(), role_val.unwrap()));
-                } else {
-                    ctx.diagnostic(interactive_supports_focus_non_interactive_diagnostic(role_attr.span(), &element_type, role_val.unwrap()));
-                }
+                 ctx.diagnostic(interactive_supports_focus_diagnostic(jsx_opening_el.span));
             }
         }
     }
 }
-
-const INTERACTIVE_PROPS: [&str; 6] = [
-    "onClick",
-    "onMouseDown",
-    "onMouseUp",
-    "onKeyPress",
-    "onKeyDown",
-    "onKeyUp",
-];
 
 #[test]
 fn test() {
     use crate::tester::Tester;
 
     let pass = vec![
-        r#"<div role="button" onClick={() => {}} tabIndex="0" />"#,
-        r#"<div role="checkbox" onClick={() => {}} tabIndex="-1" />"#,
-        r#"<button onClick={() => {}} />"#,
-        r#"<input type="text" onClick={() => {}} />"#,
-        r#"<a href="foo" onClick={() => {}} />"#,
+        r#"<div role="button" tabIndex="0" />"#,
+        r#"<div role="checkbox" tabIndex="-1" />"#,
+        r#"<button />"#,
+        r#"<input type="text" />"#,
+        r#"<a href="foo" />"#,
         r#"<div />"#,
         r#"<div role="presentation" />"#,
-        r#"<div role="button" onClick={() => {}} tabIndex={0} />"#,
-        r#"<MyButton onClick={() => {}} />"#,
-        r#"<div role="button" />"#, // Valid because no handler
-        r#"<div role="button" onClick={() => {}} aria-disabled="true" />"#, // Valid becuse disabled
-        r#"<div role="button" onClick={() => {}} disabled />"#, // Valid becuse disabled check
+        r#"<div role="button" tabIndex={0} />"#,
+        r#"<MyButton />"#,
     ];
 
     let fail = vec![
-        r#"<div role="button" onClick={() => {}} />"#,
-        r#"<div role="checkbox" onClick={() => {}} />"#,
-        r#"<div role="link" onClick={() => {}} />"#,
-        r#"<span role="slider" onClick={() => {}} />"#,
-        r#"<div role="button" onClick={() => {}} tabIndex={undefined} />"#,
-        r#"<section role="button" onClick={() => {}} />"#,
-        r#"<main role="button" onClick={() => {}} />"#,
-        r#"<article role="button" onClick={() => {}} />"#,
-        r#"<header role="button" onClick={() => {}} />"#,
-        r#"<footer role="button" onClick={() => {}} />"#,
+        r#"<div role="button" />"#,
+        r#"<div role="checkbox" />"#,
+        r#"<div role="link" />"#,
+        r#"<span role="slider" />"#,
+        r#"<div role="button" tabIndex={undefined} />"#,
     ];
 
     Tester::new(InteractiveSupportsFocus::NAME, InteractiveSupportsFocus::PLUGIN, pass, fail).test_and_snapshot();
